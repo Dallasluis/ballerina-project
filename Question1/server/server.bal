@@ -191,3 +191,73 @@ service /pdu on httpListener {
             };
         }
     }
+
+
+
+// Function to update an existing programme interactively
+function updateProgramme() returns Programme|ErrorMsg|error? {
+    string programmeCode = getInput("\nEnter Programme Code to update: ");
+
+    // Retrieve existing programme
+    Programme|ErrorMsg existingProgrammeResult = check getProgrammeByCode(programmeCode);
+    if (existingProgrammeResult is ErrorMsg) {
+        io:println("\nProgramme not found.\n");
+        return existingProgrammeResult;
+    }
+
+    // Get the existing programme details
+    Programme existingProgramme = existingProgrammeResult;
+
+    // Update basic details
+    existingProgramme.nqf_level = check 'int:fromString(getInput("\nEnter new NQF Level (integer): "));
+    existingProgramme.faculty_name = getInput("Enter new Faculty Name: ");
+    existingProgramme.department_name = getInput("Enter new Department Name: ");
+
+    // Ask user if they want to change Programme Title
+    string changeTitle = getInput("\nDo you want to change the Programme Title? (y/n): ");
+    if (changeTitle == "y" || changeTitle == "Y") {
+        existingProgramme.programme_title = getInput("\nEnter new Programme Title: ");
+    }
+
+    // Ask user if they want to change Registration Date
+    string changeRegDate = getInput("\nDo you want to change the Registration Date? (y/n): ");
+    if (changeRegDate == "y" || changeRegDate == "Y") {
+        existingProgramme.reg_date = getInput("\nEnter new Registration Date (YYYY-MM-DD): ");
+    }
+
+    // Collect new courses, update existing courses or delete courses
+    existingProgramme.courses = check manageCourses(existingProgramme.courses);
+
+    // Post updated programme to the server
+    Programme|error response = pduclient->put(string `/updateProgramme/${programmeCode}`, existingProgramme);
+
+    if (response is Programme) {
+        return response;
+    } else {
+        io:println("Error occurred while updating the programme.");
+        return response;
+    }
+}
+
+// Function to manage courses: add, delete, or update
+function manageCourses(Course[] currentCourses) returns Course[]|error {
+    io:println("\nManage courses:\n");
+    io:println("1. Add new course");
+    io:println("2. Delete a course");
+    io:println("3. Update existing course");
+    int choice = check 'int:fromString(getInput("\nChoose an option (1/2/3): "));
+
+    if (choice == 1) {
+        // Add new courses
+        return check addCourses(currentCourses);
+    } else if (choice == 2) {
+        // Delete a course
+        return deleteCourse(currentCourses);
+    } else if (choice == 3) {
+        // Update existing courses
+        return updateCourse(currentCourses);
+    } else {
+        io:println("\nInvalid choice.\n");
+        return currentCourses;
+    }
+}
