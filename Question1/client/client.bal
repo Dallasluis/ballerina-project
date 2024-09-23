@@ -327,3 +327,115 @@ function displayProgramme(Programme programme) {
         io:println(); // Adds a blank line for readability
     }
 }
+
+/ Main function to handle user choices
+public function main() returns error? {
+    while true {
+        io:println("\n==== Programme Management System ====");
+        io:println("");
+        io:println("1. Add a new programme");
+        io:println("2. Retrieve all programmes");
+        io:println("3. Update an existing programme");
+        io:println("4. Retrieve programmes");
+        io:println("5. Delete programme");
+        io:println("6. Retrieve review programme");
+        io:println("7. Retrieve all programmes by faculty");
+        io:println("8. Exit");
+
+        int choice = check int:fromString(getInput("\nChoose an option (1-7): "));
+
+        if (choice == 1) {
+            Programme|ErrorMsg? result = check addProgramme();
+            if (result is Programme) {
+                io:println("\n Programme added successfully ");
+                displayProgramme(result);
+            } else if (result is ErrorMsg) {
+                io:println("Error: " + result.errmsg);
+            }
+        } else if (choice == 2) {
+
+            Programme[]|ErrorMsg|error result = retrieveProgrammes();
+
+            if (result is Programme[]) {
+                io:println("\n*** " + result.length().toString() + " programmes retrieved ***\n");
+                int count = 1;
+
+                foreach Programme programme in result {
+                    io:println("Programme #" + count.toString() + "\n");
+                    displayProgramme(programme);
+                    count = count + 1;
+                }
+            } else if (result is ErrorMsg) {
+                io:println("Error: " + result.errmsg);
+            } else {
+                io:println("An error occurred while retrieving the programmes.");
+            }
+
+        } else if (choice == 3) {
+
+            Programme|ErrorMsg? result = check updateProgramme();
+            if (result is Programme) {
+                io:println("\n Programme updated successfully \n");
+                displayProgramme(result);
+            } else if (result is ErrorMsg) {
+                io:println("Error: " + result.errmsg);
+            }
+
+        } else if (choice == 4) {
+            string programmeCode = getInput("\nEnter Programme Code: ");
+            Programme|ErrorMsg result = check getProgrammeByCode(programmeCode);
+
+            if (result is Programme) {
+                io:println("\nProgramme retrieved successfully:\n");
+                displayProgramme(result);
+            } else {
+                io:println("Error: " + result.errmsg);
+            }
+        } else if (choice == 5) {
+            ErrorMsg? _ = deleteProgramme();
+
+        } else if (choice == 6) {
+
+            Programme[]|ErrorMsg|error result = getReviewProgramme();
+
+            if (result is Programme[]) {
+                io:println("\n*** " + result.length().toString() + " programmes retrieved ***\n");
+                int count = 1;
+
+                foreach Programme programme in result {
+                    io:println("Programme #" + count.toString() + "\n");
+                    displayProgramme(programme);
+                    count = count + 1;
+                }
+            } else if (result is ErrorMsg) {
+                io:println("Error: " + result.errmsg);
+            } else {
+                io:println("An error occurred while retrieving the programmes.");
+            }
+        } else if (choice == 7) {
+
+            Programme[]|ErrorMsg|error result = getProgrammeByFaculty();
+
+            if (result is Programme[]) {
+                io:println("\n*** " + result.length().toString() + " programmes retrieved ***\n");
+                int count = 1;
+
+                foreach Programme programme in result {
+                    io:println("Programme #" + count.toString() + "\n");
+                    displayProgramme(programme);
+                    count = count + 1;
+                }
+            } else if (result is ErrorMsg) {
+                io:println("Error: " + result.errmsg);
+            } else {
+                io:println("An error occurred while retrieving the programmes.");
+            }
+        } else if (choice == 8) {
+            io:println("\nExiting...");
+            return;
+        } else {
+            io:println("\nInvalid option. Please try again.\n");
+        }
+    }
+}
+
