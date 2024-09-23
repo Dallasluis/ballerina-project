@@ -98,3 +98,232 @@ function getProgrammeByCode(string programmeCode) returns Programme|ErrorMsg|err
         return errorMsg;
     }
 }
+
+
+ Function to add new courses
+function addCourses(Course[] currentCourses) returns Course[]|error {
+    Course[] updatedCourses = currentCourses; // Directly assign the currentCourses to updatedCourses
+    boolean addMore = true;
+
+    while (addMore) {
+        Course newCourse = {courseCode: "", courseName: "", nqf_level: 7};
+        newCourse.courseCode = getInput("\nEnter new Course Code: ");
+        newCourse.courseName = getInput("Enter new Course Name: ");
+        newCourse.nqf_level = check 'int:fromString(getInput("Enter new NQF Level (integer): "));
+
+        updatedCourses.push(newCourse);
+
+        string moreCourses = getInput("\nDo you want to add another course? (y/n): ");
+        if (moreCourses != "y" && moreCourses != "Y") {
+            addMore = false;
+        }
+    }
+
+    return updatedCourses;
+}
+
+// Function to delete a course
+function deleteCourse(Course[] currentCourses) returns Course[] {
+    io:println("\nCurrent courses:\n");
+    foreach Course course in currentCourses {
+        io:println("Code: " + course.courseCode + ", Name: " + course.courseName);
+    }
+
+    string courseCodeToDelete = getInput("\nEnter the Course Code to delete: ");
+    Course[] updatedCourses = [];
+
+    foreach Course course in currentCourses {
+        if (course.courseCode != courseCodeToDelete) {
+            updatedCourses.push(course);
+        }
+    }
+
+    return updatedCourses;
+}
+
+// Function to update a course
+function updateCourse(Course[] currentCourses) returns Course[] {
+    io:println("\nCurrent courses:\n");
+    foreach Course course in currentCourses {
+        io:println("Code: " + course.courseCode + ", Name: " + course.courseName);
+    }
+
+    string courseCodeToUpdate = getInput("\nEnter the Course Code to update: ");
+    Course[] updatedCourses = [];
+    boolean courseUpdated = false;
+
+    foreach Course course in currentCourses {
+        if (course.courseCode == courseCodeToUpdate) {
+            io:println("\nUpdating course: " + course.courseCode);
+            course.courseName = getInput("Enter new Course Name: ");
+
+            string nqfLevelInput = getInput("Enter new NQF Level (integer): ");
+            int|error nqfLevelResult = int:fromString(nqfLevelInput);
+
+            if (nqfLevelResult is int) {
+                course.nqf_level = nqfLevelResult;
+            } else {
+                io:println("\nInvalid NQF Level. Keeping the old value.\n");
+            }
+
+            courseUpdated = true;
+        }
+        updatedCourses.push(course);
+    }
+
+    if (!courseUpdated) {
+        io:println("\nNo course found with code: " + courseCodeToUpdate);
+    }
+
+    return updatedCourses;
+}
+
+// Function to delete a programme interactively
+function deleteProgramme() returns ErrorMsg? {
+    string programmeCode = getInput("\nEnter Programme Code to delete: ");
+
+    // Send DELETE request to the server
+    http:Response|error response = pduclient->delete(string `/deleteProgram/${programmeCode}`);
+
+    if (response is http:Response) {
+        if (response.statusCode == 200) {
+            io:println("\nProgramme deleted successfully.\n");
+            return;
+        } else {
+            io:println("\nUnexpected error format received from server.\n");
+            return;
+        }
+    } else {
+        io:println("\nError occurred while deleting the programme.\n");
+        return;
+    }
+}
+
+// Function to retrieve all faculty names
+function getFaculties() returns FacultyNamesResponse|ErrorMsg|error {
+
+    // Send a GET request to the server
+    FacultyNamesResponse|error response = pduclient->get("/faculties");
+
+    // Check if the response is a FacultyNamesResponse or an error
+    if (response is FacultyNamesResponse) {
+        return response;
+    } else {
+        // Return an error message if retrieval failed
+        ErrorMsg errorMsg = {errmsg: "Failed to retrieve faculties."};
+        return errorMsg;
+    }
+}
+
+// Function to retrieve all programmes by faculty name
+function getProgrammeByFaculty() returns Programme[]|ErrorMsg|error {
+
+    io:println("\n Available Faculties:\n");
+
+    // Retrieve the list of faculties
+    FacultyNamesResponse|ErrorMsg|error result = getFaculties();
+
+    // Handle the result
+    if (result is FacultyNamesResponse) {
+        // Display all available faculties
+        int count = 1;
+        foreach var faculty in result.faculty_names {
+            io:println(" #" + count.toString() + ". " + faculty);
+            count = count + 1;
+        }
+    } else if (result is ErrorMsg) {
+        return result; // Return the ErrorMsg if it failed to retrieve faculties
+    } else {
+        return error("\n Failed to retrieve faculties.\n");
+    }
+
+    // Get user input for faculty name
+    string facultyNameCode = getInput("\nEnter Faculty Name: ");
+
+    // Construct the URL properly and send GET request to retrieve programmes
+    Programme[]|error response = pduclient->get(string `/programmes/faculty/${facultyNameCode}`);
+
+    if (response is Programme[]) {
+        return response;
+    } else {
+        // Return an error message if retrieval failed
+        ErrorMsg errorMsg = {errmsg: "\nFailed to retrieve programmes.\n"};
+        return errorMsg;
+    }
+}
+
+function getReviewProgramme() returns Programme[]|ErrorMsg|error {
+
+    Programme[]|error response = pduclient->get("/reviewProgrammes");
+
+    // Check if the response is a FacultyNamesResponse or an error
+    if (response is Programme[]) {
+        return response;
+    } else {
+        // Return an error message if retrieval failed
+        ErrorMsg errorMsg = {errmsg: "Failed to retrieve review programmes."};
+        return errorMsg;
+    }
+}
+
+// Function to capture and validate integer input
+function getValidatedIntegerInput(string prompt) returns int|error {
+    while true {
+        string input = getInput(prompt);
+        var result = int:fromString(input);
+        if (result is int) {
+            return result;
+        } else {
+            io:println("Invalid input. Please enter an integer value.");
+        }
+    }
+}
+
+// Function to collect courses from the user
+function collectCourses() returns Course[]|error {
+    Course[] courses = [];
+    string addAnotherCourse = "y";
+
+    while addAnotherCourse == "y" || addAnotherCourse == "Y" {
+        string courseCode = getInput("\nEnter Course Code: ");
+        string courseName = getInput("Enter Course Name: ");
+        int courseNQFLevel = check getValidatedIntegerInput("Enter Course NQF Level (integer): ");
+
+        Course newCourse = {courseCode: courseCode, courseName: courseName, nqf_level: courseNQFLevel};
+        courses.push(newCourse);
+
+        addAnotherCourse = getValidatedYesNoInput("\nAdd another course? (y/n): ");
+    }
+    return courses;
+}
+
+// Function to validate 'y' or 'n' input
+function getValidatedYesNoInput(string prompt) returns string {
+    while true {
+        string input = getInput(prompt);
+        if (input == "y" || input == "Y" || input == "n" || input == "N") {
+            return input;
+        } else {
+            io:println("Invalid input. Please enter 'y' or 'n'.");
+        }
+    }
+}
+
+// Function to display a Programme object
+function displayProgramme(Programme programme) {
+
+    io:println(" Programme Code: " + programme.programme_code);
+    io:println(" NQF Level: " + programme.nqf_level.toString());
+    io:println(" Faculty Name: " + programme.faculty_name);
+    io:println(" Department Name: " + programme.department_name);
+    io:println(" Programme Title: " + programme.programme_title);
+    io:println(" Registration Date: " + programme.reg_date);
+
+    io:println("\n Courses:\n");
+    foreach Course course in programme.courses {
+        io:println("  Course Code: " + course.courseCode);
+        io:println("  Course Name: " + course.courseName);
+        io:println("  NQF Level: " + course.nqf_level.toString());
+        io:println(); // Adds a blank line for readability
+    }
+}
