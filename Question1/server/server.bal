@@ -261,3 +261,62 @@ function manageCourses(Course[] currentCourses) returns Course[]|error {
         return currentCourses;
     }
 }
+
+//Retrieve all faculties
+    resource function get faculties() returns FacultyNamesResponse|error {
+        map<string> facultyNamesMap = {};
+
+        foreach Programme programme in programmeTable {
+            facultyNamesMap[programme.faculty_name] = "";
+        }
+
+        string[] facultyNamesArray = facultyNamesMap.keys();
+
+        FacultyNamesResponse response = {
+            faculty_names: facultyNamesArray
+        };
+
+        return response;
+    }
+
+    //Retrieve all the programmes that are due for review
+    resource function get reviewProgrammes() returns Programme[]|error {
+        string fiveYearsBack = getFiveYearsDateFromCurrentDate();
+
+        Programme[] reviewProgrammes = [];
+
+        // Loop through programmeTable data
+        foreach Programme programme in programmeTable {
+            if (check compareDates(programme.reg_date, fiveYearsBack)) {
+                reviewProgrammes.push(programme);
+            }
+        }
+
+        return reviewProgrammes;
+    }
+
+}
+
+function getFiveYearsDateFromCurrentDate() returns string {
+    time:Utc currentUtc = time:utcNow();
+    time:Civil currentDateTime = time:utcToCivil(currentUtc);
+    int pastYear = currentDateTime.year - 5;
+    string formattedDate = pastYear.toString() + "-" +
+                        (currentDateTime.month < 10 ? "0" + currentDateTime.month.toString() : currentDateTime.month.toString()) + "-" +
+                        (currentDateTime.day < 10 ? "0" + currentDateTime.day.toString() : currentDateTime.day.toString());
+
+    return formattedDate;
+}
+
+function compareDates(string reg_date, string fiveYearsBack) returns boolean|error {
+
+    string timeStr = "T00:00:00Z";
+    time:Civil utcToCivil1 = check time:civilFromString(reg_date + timeStr);
+    time:Civil utcToCivil2 = check time:civilFromString(fiveYearsBack + timeStr);
+
+    time:Utc utcFromCivil1 = check time:utcFromCivil(utcToCivil1);
+    time:Utc utcFromCivil2 = check time:utcFromCivil(utcToCivil2);
+
+    return (utcFromCivil1 <= utcFromCivil2);
+
+}
